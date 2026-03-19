@@ -1,28 +1,22 @@
-// define keys
-const STORAGE_KEYS = {
-    ACCOUNTS: 'finance_accounts',
-    TRANSACTIONS: 'finance_transactions',
-    DEBTS: 'finance_debts'
+// js/store.js
+const firebaseConfig = {
+  apiKey: "AIzaSyDKk9FzV0ndu1XugVfE2N2qSYGUIwdBgJw",
+  authDomain: "taichinhminhthanh.firebaseapp.com",
+  projectId: "taichinhminhthanh",
+  storageBucket: "taichinhminhthanh.firebasestorage.app",
+  messagingSenderId: "226019304294",
+  appId: "1:226019304294:web:f3bb229aa1f8749abedea7",
+  measurementId: "G-RL7NTYW3XC"
 };
 
-// Intialize empty states if not already present
-function initStore() {
-    if (!localStorage.getItem(STORAGE_KEYS.ACCOUNTS)) {
-        const defaultAccounts = [
-            { id: 'acc_1', name: 'Tiền mặt', type: 'cash', balance: 0 },
-            { id: 'acc_2', name: 'Ngân hàng', type: 'bank', balance: 0 }
-        ];
-        localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(defaultAccounts));
-    }
+// Initialize Firebase using compat syntax
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-    if (!localStorage.getItem(STORAGE_KEYS.TRANSACTIONS)) {
-        localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify([]));
-    }
-
-    if (!localStorage.getItem(STORAGE_KEYS.DEBTS)) {
-        localStorage.setItem(STORAGE_KEYS.DEBTS, JSON.stringify([]));
-    }
-}
+// Caches for synchronous rendering
+let accountsData = [];
+let transactionsData = [];
+let debtsData = [];
 
 // Utility formatting functions
 const Utils = {
@@ -45,133 +39,103 @@ const Utils = {
     }
 };
 
-// Main store abstraction
 const Store = {
     history: [],
-    snapshot: () => {
-        Store.history.push({
-            accounts: localStorage.getItem(STORAGE_KEYS.ACCOUNTS),
-            transactions: localStorage.getItem(STORAGE_KEYS.TRANSACTIONS),
-            debts: localStorage.getItem(STORAGE_KEYS.DEBTS)
-        });
-        if(Store.history.length > 20) Store.history.shift(); // Max 20 steps
-        // Update UI if App is loaded
-        if(typeof App !== 'undefined' && App.updateUndoButton) App.updateUndoButton();
-    },
+    snapshot: () => {}, // Disable snapshot for Firestore to prevent data conflicts
     undo: () => {
-        if(Store.history.length === 0) return;
-        const lastState = Store.history.pop();
-        localStorage.setItem(STORAGE_KEYS.ACCOUNTS, lastState.accounts);
-        localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, lastState.transactions);
-        localStorage.setItem(STORAGE_KEYS.DEBTS, lastState.debts);
-        if(typeof App !== 'undefined' && App.updateUndoButton) App.updateUndoButton();
+        alert("Tính năng Hoàn tác tạm thời vô hiệu hóa khi đang bật đồng bộ đám mây Firebase.");
+    },
+
+    // Listen to Firebase Realtime updates
+    initStore: () => {
+        db.collection("accounts").onSnapshot((snapshot) => {
+            accountsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (typeof App !== 'undefined') App.switchTab(App.currentTab);
+        });
+
+        db.collection("transactions").onSnapshot((snapshot) => {
+            transactionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (typeof App !== 'undefined') App.switchTab(App.currentTab);
+        });
+
+        db.collection("debts").onSnapshot((snapshot) => {
+            debtsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (typeof App !== 'undefined') App.switchTab(App.currentTab);
+        });
     },
 
     // ---- ACCOUNTS ----
-    getAccounts: () => JSON.parse(localStorage.getItem(STORAGE_KEYS.ACCOUNTS)),
-    saveAccounts: (data) => localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(data)),
-    
+    getAccounts: () => accountsData,
     addAccount: (account) => {
-        Store.snapshot();
-        const accounts = Store.getAccounts();
-        const newAcc = { id: Utils.generateId(), ...account, balance: Number(account.balance || 0) };
-        accounts.push(newAcc);
-        Store.saveAccounts(accounts);
-        return newAcc;
+        const id = Utils.generateId();
+        db.collection("accounts").doc(id).set({
+            ...account,
+            balance: Number(account.balance || 0)
+        });
     },
-
     deleteAccount: (id) => {
-        Store.snapshot();
-        const accounts = Store.getAccounts();
-        Store.saveAccounts(accounts.filter(a => a.id !== id));
+        db.collection("accounts").doc(id).delete();
     },
-
     updateAccountBalance: (accountId, amountChange) => {
-        const accounts = Store.getAccounts();
-        const acc = accounts.find(a => a.id === accountId);
+        const acc = accountsData.find(a => a.id === accountId);
         if (acc) {
-            acc.balance += amountChange;
-            Store.saveAccounts(accounts);
+            db.collection("accounts").doc(accountId).set({
+                ...acc,
+                balance: acc.balance + amountChange
+            });
         }
     },
 
     // ---- TRANSACTIONS ----
-    getTransactions: () => {
-        const txs = JSON.parse(localStorage.getItem(STORAGE_KEYS.TRANSACTIONS));
-        return txs.sort((a,b) => new Date(b.date) - new Date(a.date));
-    },
-    saveTransactions: (data) => localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(data)),
-    
+    getTransactions: () => transactionsData.sort((a,b) => new Date(b.date) - new Date(a.date)),
     addTransaction: (transaction) => {
-        Store.snapshot();
-        const transactions = Store.getTransactions();
-        const newTx = { id: Utils.generateId(), ...transaction, amount: Number(transaction.amount) };
-        transactions.push(newTx);
-        Store.saveTransactions(transactions);
-
-        // Update corresponding account balance
-        const amountChange = transaction.type === 'income' ? newTx.amount : -newTx.amount;
-        Store.updateAccountBalance(transaction.accountId, amountChange);
+        const id = Utils.generateId();
+        const numAmt = Number(transaction.amount);
         
-        return newTx;
-    },
+        db.collection("transactions").doc(id).set({
+            ...transaction,
+            amount: numAmt
+        });
 
+        // Tự động cập nhật số dư
+        const amountChange = transaction.type === 'income' ? numAmt : -numAmt;
+        Store.updateAccountBalance(transaction.accountId, amountChange);
+    },
     deleteTransaction: (id) => {
-        Store.snapshot();
-        const transactions = Store.getTransactions();
-        const tx = transactions.find(t => t.id === id);
-        if(tx) {
-            // Revert balance
+        const tx = transactionsData.find(t => t.id === id);
+        if (tx) {
             const amountChange = tx.type === 'income' ? -tx.amount : tx.amount;
             Store.updateAccountBalance(tx.accountId, amountChange);
-            
-            const newTxs = transactions.filter(t => t.id !== id);
-            Store.saveTransactions(newTxs);
+            db.collection("transactions").doc(id).delete();
         }
     },
 
     // ---- DEBTS ----
-    getDebts: () => JSON.parse(localStorage.getItem(STORAGE_KEYS.DEBTS)).sort((a,b) => new Date(a.date) - new Date(b.date)),
-    saveDebts: (data) => localStorage.setItem(STORAGE_KEYS.DEBTS, JSON.stringify(data)),
-    
+    getDebts: () => debtsData.sort((a,b) => new Date(a.date) - new Date(b.date)),
     addDebt: (debt) => {
-        Store.snapshot();
-        const debts = Store.getDebts();
-        const newDebt = { 
-            id: Utils.generateId(), 
-            ...debt, 
+        const id = Utils.generateId();
+        db.collection("debts").doc(id).set({
+            ...debt,
             amount: Number(debt.amount),
-            status: 'pending' // pending or paid
-        };
-        debts.push(newDebt);
-        Store.saveDebts(debts);
-        return newDebt;
+            status: 'pending'
+        });
     },
-    
     resolveDebt: (id) => {
-        Store.snapshot();
-        const debts = Store.getDebts();
-        const debt = debts.find(d => d.id === id);
+        const debt = debtsData.find(d => d.id === id);
         if(debt) {
-            debt.status = 'paid';
-            Store.saveDebts(debts);
+            db.collection("debts").doc(id).set({
+                ...debt,
+                status: 'paid'
+            });
         }
     },
-
     deleteDebt: (id) => {
-        Store.snapshot();
-        const debts = Store.getDebts();
-        Store.saveDebts(debts.filter(d => d.id !== id));
+        db.collection("debts").doc(id).delete();
     },
 
     // ---- STATS ----
     getDashboardStats: () => {
-        const accounts = Store.getAccounts();
-        const transactions = Store.getTransactions();
-        
-        const totalBalance = accounts.reduce((sum, acc) => sum + Number(acc.balance), 0);
-        
-        // This month stats
+        const totalBalance = accountsData.reduce((sum, acc) => sum + Number(acc.balance), 0);
         const now = new Date();
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
@@ -179,7 +143,7 @@ const Store = {
         let monthlyIncome = 0;
         let monthlyExpense = 0;
 
-        transactions.forEach(tx => {
+        transactionsData.forEach(tx => {
             const txDate = new Date(tx.date);
             if (txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear) {
                 if(tx.type === 'income') monthlyIncome += tx.amount;
@@ -191,5 +155,5 @@ const Store = {
     }
 };
 
-// Boot up
-initStore();
+// Initialize listeners
+Store.initStore();
