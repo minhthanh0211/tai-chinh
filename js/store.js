@@ -11,6 +11,7 @@ const firebaseConfig = {
 
 // Initialize Firebase using compat syntax
 firebase.initializeApp(firebaseConfig);
+const analytics = firebase.analytics();
 const db = firebase.firestore();
 
 // Caches for synchronous rendering
