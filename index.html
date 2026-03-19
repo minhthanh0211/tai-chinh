@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceFlow - Quản lý tài chính</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="ph-fill ph-wallet"></i>
+                    <span>FinanceFlow</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-tab="dashboard">
+                    <i class="ph ph-squares-four"></i>
+                    <span>Tổng quan</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="transactions">
+                    <i class="ph ph-arrows-left-right"></i>
+                    <span>Giao dịch</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="accounts">
+                    <i class="ph ph-bank"></i>
+                    <span>Tài khoản</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="debts">
+                    <i class="ph ph-handshake"></i>
+                    <span>Vay & Nợ</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="reports">
+                    <i class="ph ph-chart-pie-slice"></i>
+                    <span>Báo cáo</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn btn-primary btn-full" id="btn-add-transaction-sidebar" onclick="App.openTransactionModal()">
+                    <i class="ph ph-plus"></i> Thêm giao dịch
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="page-title">
+                    <h1 id="current-page-title">Tổng quan</h1>
+                </div>
+                <div class="topbar-actions">
+                    <div class="user-profile">
+                        <img src="https://ui-avatars.com/api/?name=User&background=10b981&color=fff" alt="User">
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-area" id="content-area">
+                <!-- Dynamic content injected here by app.js -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="transaction-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Thêm giao dịch mới</h2>
+                <button class="btn-close" onclick="App.closeTransactionModal()"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="transaction-form" onsubmit="App.handleTransactionSubmit(event)">
+                    <div class="form-group type-selector">
+                        <label class="radio-card">
+                            <input type="radio" name="trans_type" value="income" checked>
+                            <div class="card-content income">
+                                <i class="ph ph-trend-up"></i> Thu nhập
+                            </div>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="trans_type" value="expense">
+                            <div class="card-content expense">
+                                <i class="ph ph-trend-down"></i> Chi tiêu
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="form-group mt-4">
+                        <label>Số tiền (VNĐ) <span class="text-danger">*</span></label>
+                        <input type="text" inputmode="numeric" id="trans-amount" class="form-control" placeholder="0" required oninput="Utils.formatInputNumber(this)">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Tài khoản <span class="text-danger">*</span></label>
+                            <select id="trans-account" class="form-control" required>
+                                <!-- Injected via JS -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Danh mục <span class="text-danger">*</span></label>
+                            <select id="trans-category" class="form-control" required>
+                                <option value="Lương">Lương</option>
+                                <option value="Ăn uống">Ăn uống</option>
+                                <option value="Di chuyển">Di chuyển</option>
+                                <option value="Mua sắm">Mua sắm</option>
+                                <option value="Hóa đơn">Hóa đơn</option>
+                                <option value="Giải trí">Giải trí</option>
+                                <option value="Khác">Khác</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Ngày <span class="text-danger">*</span></label>
+                            <input type="date" id="trans-date" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ghi chú</label>
+                        <input type="text" id="trans-note" class="form-control" placeholder="Tùy chọn">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-full mt-4">Lưu giao dịch</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Undo Button -->
+    <button id="btn-undo" class="btn btn-outline" style="position: fixed; bottom: 24px; right: 24px; background: var(--bg-card); display: none; z-index: 100; box-shadow: var(--shadow-lg); font-size: 14px; padding: 12px 20px; border-radius: 99px;">
+        <i class="ph ph-arrow-u-up-left" style="font-size: 18px;"></i> Hoàn tác
+    </button>
+
+    <script src="js/store.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
