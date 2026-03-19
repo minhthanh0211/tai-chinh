@@ -62,6 +62,7 @@ const Store = {
             if(error.code === 'auth/operation-not-allowed') {
                 alert("Bạn cần phải vào Firebase Console > Authentication > Sign-in method > Mở tính năng 'Google' lên nhé!");
             } else {
+                alert("Lỗi đăng nhập Firebase: " + error.message + " (Vui lòng kiểm tra lại miền - domain authorized trên Firebase Console)");
                 console.error("Lỗi đăng nhập:", error);
             }
         });
