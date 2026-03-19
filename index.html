@@ -16,7 +16,21 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="app-container">
+    
+    <!-- Login Screen -->
+    <div id="login-screen" style="position: fixed; inset: 0; background-color: var(--bg-main); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+        <div class="card" style="text-align: center; max-width: 400px; padding: 48px 32px; box-shadow: var(--shadow-lg);">
+            <i class="ph-fill ph-wallet text-positive" style="font-size: 64px; margin-bottom: 24px;"></i>
+            <h2 style="font-size: 24px; margin-bottom: 8px;">FinanceFlow</h2>
+            <p class="text-muted" style="margin-bottom: 32px;">Đăng nhập để mỗi cá nhân được quản lý ví bộ lưu trữ tài chính hoàn toàn biệt lập của riêng mình.</p>
+            <button class="btn btn-primary btn-full" onclick="Store.loginWithGoogle()" style="font-size: 16px; padding: 12px; gap: 12px;">
+                <i class="ph ph-google-logo" style="font-size: 20px;"></i> Đăng nhập bằng Google
+            </button>
+        </div>
+    </div>
+
+    <!-- Main App UI -->
+    <div class="app-container" style="display: none;">
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -61,8 +75,10 @@
                     <h1 id="current-page-title">Tổng quan</h1>
                 </div>
                 <div class="topbar-actions">
-                    <div class="user-profile">
-                        <img src="https://ui-avatars.com/api/?name=User&background=10b981&color=fff" alt="User">
+                    <div class="user-profile" style="display: flex; align-items: center; gap: 16px;">
+                        <span id="user-name" style="font-weight: 500; font-size: 14px;"></span>
+                        <img id="user-avatar" src="https://ui-avatars.com/api/?name=User&background=10b981&color=fff" alt="User">
+                        <button class="btn btn-outline btn-sm" onclick="Store.logout()" style="gap: 4px;"><i class="ph ph-sign-out"></i> Thoát</button>
                     </div>
                 </div>
             </header>
@@ -150,6 +166,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-analytics-compat.js"></script>
+    <!-- Add Auth script -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
 
     <script src="js/store.js"></script>
     <script src="js/app.js"></script>

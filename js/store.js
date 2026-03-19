@@ -13,6 +13,14 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const analytics = firebase.analytics();
 const db = firebase.firestore();
+const auth = firebase.auth();
+
+let currentUser = null;
+
+// Listeners unsubscribe functions
+let unsubAccounts = null;
+let unsubTxs = null;
+let unsubDebts = null;
 
 // Caches for synchronous rendering
 let accountsData = [];
@@ -42,36 +50,69 @@ const Utils = {
 
 const Store = {
     history: [],
-    snapshot: () => {}, // Disable snapshot for Firestore to prevent data conflicts
+    snapshot: () => {}, 
     undo: () => {
         alert("Tính năng Hoàn tác tạm thời vô hiệu hóa khi đang bật đồng bộ đám mây Firebase.");
     },
 
-    // Listen to Firebase Realtime updates
-    initStore: () => {
-        db.collection("accounts").onSnapshot((snapshot) => {
+    // --- AUTHENTICATION ---
+    loginWithGoogle: () => {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).catch(error => {
+            if(error.code === 'auth/operation-not-allowed') {
+                alert("Bạn cần phải vào Firebase Console > Authentication > Sign-in method > Mở tính năng 'Google' lên nhé!");
+            } else {
+                console.error("Lỗi đăng nhập:", error);
+            }
+        });
+    },
+
+    logout: () => {
+        auth.signOut();
+    },
+
+    // --- START SYNC LISTENERS SCOPED TO USER ---
+    startListeners: () => {
+        if(!currentUser) return;
+        const uid = currentUser.uid;
+
+        // Accounts
+        unsubAccounts = db.collection("accounts").where("uid", "==", uid).onSnapshot((snapshot) => {
             accountsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             if (typeof App !== 'undefined') App.switchTab(App.currentTab);
         });
 
-        db.collection("transactions").onSnapshot((snapshot) => {
+        // Transactions
+        unsubTxs = db.collection("transactions").where("uid", "==", uid).onSnapshot((snapshot) => {
             transactionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             if (typeof App !== 'undefined') App.switchTab(App.currentTab);
         });
 
-        db.collection("debts").onSnapshot((snapshot) => {
+        // Debts
+        unsubDebts = db.collection("debts").where("uid", "==", uid).onSnapshot((snapshot) => {
             debtsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             if (typeof App !== 'undefined') App.switchTab(App.currentTab);
         });
     },
 
+    stopListeners: () => {
+        if(unsubAccounts) unsubAccounts();
+        if(unsubTxs) unsubTxs();
+        if(unsubDebts) unsubDebts();
+        accountsData = [];
+        transactionsData = [];
+        debtsData = [];
+    },
+
     // ---- ACCOUNTS ----
     getAccounts: () => accountsData,
     addAccount: (account) => {
+        if(!currentUser) return;
         const id = Utils.generateId();
         db.collection("accounts").doc(id).set({
             ...account,
-            balance: Number(account.balance || 0)
+            balance: Number(account.balance || 0),
+            uid: currentUser.uid
         });
     },
     deleteAccount: (id) => {
@@ -90,15 +131,17 @@ const Store = {
     // ---- TRANSACTIONS ----
     getTransactions: () => transactionsData.sort((a,b) => new Date(b.date) - new Date(a.date)),
     addTransaction: (transaction) => {
+        if(!currentUser) return;
         const id = Utils.generateId();
         const numAmt = Number(transaction.amount);
         
         db.collection("transactions").doc(id).set({
             ...transaction,
-            amount: numAmt
+            amount: numAmt,
+            uid: currentUser.uid
         });
 
-        // Tự động cập nhật số dư
+        // Cập nhật số dư
         const amountChange = transaction.type === 'income' ? numAmt : -numAmt;
         Store.updateAccountBalance(transaction.accountId, amountChange);
     },
@@ -114,11 +157,13 @@ const Store = {
     // ---- DEBTS ----
     getDebts: () => debtsData.sort((a,b) => new Date(a.date) - new Date(b.date)),
     addDebt: (debt) => {
+        if(!currentUser) return;
         const id = Utils.generateId();
         db.collection("debts").doc(id).set({
             ...debt,
             amount: Number(debt.amount),
-            status: 'pending'
+            status: 'pending',
+            uid: currentUser.uid
         });
     },
     resolveDebt: (id) => {
@@ -156,5 +201,31 @@ const Store = {
     }
 };
 
-// Initialize listeners
-Store.initStore();
+window.Utils = Utils;
+window.Store = Store;
+
+// Auth State Observer
+auth.onAuthStateChanged(user => {
+    const loginScreen = document.getElementById('login-screen');
+    const appContainer = document.querySelector('.app-container');
+
+    if (user) {
+        currentUser = user;
+        // Show App, hide Login
+        if(loginScreen) loginScreen.style.display = 'none';
+        if(appContainer) appContainer.style.display = 'flex';
+        
+        // Populate user Profile
+        document.getElementById('user-name').textContent = user.displayName || user.email;
+        if(user.photoURL) document.getElementById('user-avatar').src = user.photoURL;
+
+        // Fetch User's Data
+        Store.startListeners();
+    } else {
+        currentUser = null;
+        // Show Login, hide App
+        Store.stopListeners();
+        if(loginScreen) loginScreen.style.display = 'flex';
+        if(appContainer) appContainer.style.display = 'none';
+    }
+});
