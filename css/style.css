@@ -570,3 +570,141 @@ body {
     height: 300px;
     width: 100%;
 }
+
+/* =========================================
+   RESPONSIVE DESIGN (MOBILE & TABLET)
+   ========================================= */
+
+.fab-btn {
+    display: none;
+    position: fixed;
+    bottom: 85px;
+    right: 20px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    font-size: 24px;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+    z-index: 99;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.fab-btn:active { transform: scale(0.95); }
+
+@media (max-width: 768px) {
+    .app-container { flex-direction: column; }
+    
+    /* Transform Sidebar to Bottom Mobile Navigation */
+    .sidebar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: 65px;
+        flex-direction: row;
+        border-right: none;
+        border-top: 1px solid var(--border-color);
+        z-index: 100;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    .sidebar-header, .sidebar-footer { display: none; }
+    
+    .sidebar-nav {
+        padding: 0;
+        flex-direction: row;
+        justify-content: space-around;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .nav-item {
+        flex-direction: column;
+        gap: 4px;
+        padding: 8px 4px;
+        font-size: 11px;
+        flex: 1;
+        justify-content: center;
+        border-radius: 0;
+    }
+    
+    .nav-item.active {
+        background-color: transparent;
+        color: var(--primary);
+    }
+    
+    .nav-item.active i {
+        background-color: var(--primary-light);
+        border-radius: 12px;
+        padding: 4px 16px;
+    }
+    
+    /* Main Content Adjustments */
+    .main-content {
+        padding-bottom: 80px; /* Space for bottom nav */
+    }
+    
+    .topbar {
+        padding: 0 20px;
+    }
+    
+    .page-title h1 {
+        font-size: 18px;
+    }
+    
+    .content-area {
+        padding: 16px;
+    }
+    
+    /* Layout Overrides */
+    .grid-3 {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+    
+    /* Form Stack */
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .form-group {
+        margin-bottom: 12px;
+    }
+    
+    /* Modal Adjustments */
+    .modal-body {
+        padding: 16px;
+    }
+    
+    /* Floating Action Button (FAB) */
+    .fab-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Dynamic Charts resizing */
+    .chart-container {
+        height: 250px !important;
+    }
+    
+    /* Top Action Bar Mobile */
+    .user-profile span {
+        display: none; /* Hide name to save space */
+    }
+    .user-profile img {
+        width: 32px; height: 32px;
+    }
+}
