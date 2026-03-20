@@ -59,6 +59,10 @@ const App = {
                 pageTitle.textContent = 'Báo cáo chi tiêu';
                 App.renderReports(contentArea);
                 break;
+            case 'chat':
+                pageTitle.textContent = 'Phòng Chat Cộng đồng';
+                App.renderChat(contentArea);
+                break;
         }
     },
 
@@ -478,6 +482,48 @@ const App = {
         }
     },
 
+    renderChat: (container) => {
+        const msgs = Store.getChatMessages();
+        const myUid = firebase.auth().currentUser?.uid;
+        
+        let html = `
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-messages-box">
+        `;
+        
+        if(msgs.length === 0) {
+            html += `<div class="empty-state" style="border:none; margin: auto; padding: 0;"><i class="ph ph-chats-teardrop text-muted" style="font-size: 64px; margin-bottom:16px;"></i><h3 class="text-muted">Kênh Chat Toàn Cầu</h3><p>Chưa có ai nhắn tin. Bạn hãy mở lời chào thử nhé!</p></div>`;
+        } else {
+            msgs.forEach(m => {
+                const isMe = m.uid === myUid;
+                const timeStr = (m.createdAt && m.createdAt.toDate) ? new Date(m.createdAt.toDate()).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : 'Vừa xong';
+                html += `
+                    <div class="chat-msg ${isMe ? 'me' : ''}">
+                        <img src="${m.photoURL || 'https://ui-avatars.com/api/?name=User'}" alt="avatar">
+                        <div>
+                            ${isMe ? '' : `<div class="chat-meta">${m.displayName || 'Thành viên'} • ${timeStr}</div>`}
+                            <div class="chat-bubble">${m.text}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        html += `
+                </div>
+                <form class="chat-input-area" onsubmit="App.handleChatSubmit(event)">
+                    <input type="text" id="chat-input" class="form-control" placeholder="Trò chuyện hoặc chia sẻ kinh nghiệm..." autocomplete="off" style="border-radius: 24px; padding: 12px 24px;" required>
+                    <button type="submit" class="btn btn-primary" style="border-radius: 50%; width: 44px; height: 44px; padding: 0; min-width: 44px;"><i class="ph ph-paper-plane-right" style="font-size: 20px;"></i></button>
+                </form>
+            </div>
+        `;
+        container.innerHTML = html;
+        
+        // Auto scroll to bottom
+        const box = document.getElementById('chat-messages-box');
+        if(box) box.scrollTop = box.scrollHeight;
+    },
+
     // --- INTERACTIVE ACTIONS ---
 
     updateUndoButton: () => {
@@ -532,6 +578,15 @@ const App = {
 
         App.closeTransactionModal();
         App.switchTab(App.currentTab); // Re-render target
+    },
+
+    handleChatSubmit: (e) => {
+        e.preventDefault();
+        const input = document.getElementById('chat-input');
+        if(input.value) {
+            Store.sendMessage(input.value);
+            input.value = '';
+        }
     },
 
     deleteTransaction: (id) => {

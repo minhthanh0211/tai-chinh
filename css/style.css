@@ -571,6 +571,37 @@ body {
     width: 100%;
 }
 
+/* Chat UI */
+.chat-container {
+    display: flex; flex-direction: column; height: calc(100vh - 160px);
+    background: var(--bg-card); border-radius: var(--radius-xl); border: 1px solid var(--border-color); overflow: hidden;
+}
+.chat-messages {
+    flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;
+}
+.chat-msg {
+    display: flex; gap: 12px; max-width: 85%;
+}
+.chat-msg.me {
+    align-self: flex-end; flex-direction: row-reverse;
+}
+.chat-msg img {
+    width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color);
+}
+.chat-bubble {
+    background: var(--bg-hover); padding: 12px 16px; border-radius: 16px; border-top-left-radius: 4px;
+    line-height: 1.4; color: var(--text-main); font-size: 14px;
+}
+.chat-msg.me .chat-bubble {
+    background: var(--primary); color: white; border-radius: 16px; border-top-right-radius: 4px;
+}
+.chat-meta {
+    font-size: 11px; color: var(--text-muted); margin-bottom: 4px; margin-left: 4px;
+}
+.chat-input-area {
+    padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; gap: 12px; background: var(--bg-card); align-items: center;
+}
+
 /* =========================================
    RESPONSIVE DESIGN (MOBILE & TABLET)
    ========================================= */

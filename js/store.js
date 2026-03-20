@@ -21,11 +21,13 @@ let currentUser = null;
 let unsubAccounts = null;
 let unsubTxs = null;
 let unsubDebts = null;
+let unsubChat = null;
 
 // Caches for synchronous rendering
 let accountsData = [];
 let transactionsData = [];
 let debtsData = [];
+let chatData = [];
 
 // Utility formatting functions
 const Utils = {
@@ -94,15 +96,23 @@ const Store = {
             debtsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             if (typeof App !== 'undefined') App.switchTab(App.currentTab);
         });
+
+        // Global Chat (Shared scope)
+        unsubChat = db.collection("messages").orderBy("createdAt", "asc").limit(200).onSnapshot((snapshot) => {
+            chatData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (typeof App !== 'undefined' && App.currentTab === 'chat') App.switchTab('chat');
+        });
     },
 
     stopListeners: () => {
         if(unsubAccounts) unsubAccounts();
         if(unsubTxs) unsubTxs();
         if(unsubDebts) unsubDebts();
+        if(unsubChat) unsubChat();
         accountsData = [];
         transactionsData = [];
         debtsData = [];
+        chatData = [];
     },
 
     // ---- ACCOUNTS ----
@@ -199,6 +209,19 @@ const Store = {
         });
 
         return { totalBalance, monthlyIncome, monthlyExpense };
+    },
+
+    // ---- CHAT COMMUNITY ----
+    getChatMessages: () => chatData,
+    sendMessage: (text) => {
+        if(!currentUser || !text.trim()) return;
+        db.collection("messages").add({
+            text: text.trim(),
+            uid: currentUser.uid,
+            displayName: currentUser.displayName || currentUser.email || 'Thành viên',
+            photoURL: currentUser.photoURL || 'https://ui-avatars.com/api/?name=User',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
     }
 };
 
